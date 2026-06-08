@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Gantt – Projet IA IRVE FISE3 2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; padding: 24px; }
+  h1 { text-align: center; font-size: 22px; margin-bottom: 6px; color: #7dd3fc; letter-spacing: 1px; }
+  .subtitle { text-align: center; font-size: 13px; color: #94a3b8; margin-bottom: 28px; }
+
+  .legend { display: flex; gap: 20px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .legend-box { width: 14px; height: 14px; border-radius: 3px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 8px 6px;
+    font-weight: 600;
+    border-bottom: 2px solid #334155;
+    text-align: center;
+    white-space: nowrap;
+  }
+  thead th.label-col { text-align: left; width: 200px; min-width: 180px; }
+  thead th.who-col { width: 70px; }
+
+  tbody tr { border-bottom: 1px solid #1e293b; }
+  tbody tr:hover { background: #1e293b44; }
+  tbody tr.section-row td { background: #1e293b; font-weight: 700; color: #7dd3fc; font-size: 13px; padding: 10px 8px; }
+
+  td.label { padding: 7px 8px; color: #cbd5e1; font-size: 12px; white-space: nowrap; }
+  td.who { text-align: center; padding: 7px 4px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .p1  { background: #1d4ed8; color: #bfdbfe; }
+  .p2  { background: #7c3aed; color: #ddd6fe; }
+  .all { background: #065f46; color: #6ee7b7; }
+
+  td.day-cell { padding: 4px 2px; }
+  .bar-wrap { width: 100%; height: 22px; position: relative; }
+  .bar {
+    position: absolute;
+    height: 100%;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden;
+    transition: opacity .2s;
+  }
+  .bar:hover { opacity: 0.85; }
+
+  /* Colors by theme */
+  .c-setup   { background: #0e7490; color: #e0f2fe; }
+  .c-data    { background: #1d4ed8; color: #dbeafe; }
+  .c-bc1     { background: #b45309; color: #fef3c7; }
+  .c-bc2     { background: #7c3aed; color: #ede9fe; }
+  .c-bc3     { background: #047857; color: #d1fae5; }
+  .c-bc4     { background: #be185d; color: #fce7f3; }
+  .c-script  { background: #b45309; color: #fef3c7; }
+  .c-rapport { background: #4b5563; color: #f9fafb; }
+  .c-sout    { background: #dc2626; color: #fee2e2; }
+
+  .milestone {
+    position: absolute;
+    top: 3px; bottom: 3px;
+    width: 4px;
+    border-radius: 2px;
+    background: #f59e0b;
+    z-index: 5;
+  }
+
+  .day-header { font-size: 10px; }
+  .week-sep { border-left: 2px dashed #334155 !important; }
+  .today-col { background: #7dd3fc18 !important; }
+
+  .print-btn {
+    display: block; margin: 0 auto 20px;
+    padding: 8px 24px; background: #1d4ed8; color: #fff;
+    border: none; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  .print-btn:hover { background: #2563eb; }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    .print-btn { display: none; }
+    table { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Diagramme de Gantt – Projet IA IRVE</h1>
+<p class="subtitle">FISE3 2026 · Binôme · 4 semaines (08 juin → 05 juillet 2026)</p>
+
+<button class="print-btn" onclick="window.print()">Imprimer / Exporter PDF</button>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-box" style="background:#0e7490"></div> Setup</div>
+  <div class="legend-item"><div class="legend-box" style="background:#1d4ed8"></div> Données</div>
+  <div class="legend-item"><div class="legend-box" style="background:#b45309"></div> Besoin Client 1</div>
+  <div class="legend-item"><div class="legend-box" style="background:#7c3aed"></div> Besoin Client 2</div>
+  <div class="legend-item"><div class="legend-box" style="background:#047857"></div> Besoin Client 3</div>
+  <div class="legend-item"><div class="legend-box" style="background:#be185d"></div> Besoin Client 4</div>
+  <div class="legend-item"><div class="legend-box" style="background:#4b5563"></div> Rapport</div>
+  <div class="legend-item"><div class="legend-box" style="background:#dc2626"></div> Soutenance</div>
+  <div class="legend-item"><div class="legend-box" style="background:#f59e0b"></div> Jalon</div>
+</div>
+
+<table id="gantt">
+  <thead id="gantt-head"></thead>
+  <tbody id="gantt-body"></tbody>
+</table>
+
+<script>
+// ── Configuration ──────────────────────────────────────────────────────────
+const START = new Date('2026-06-08'); // lundi
+const DAYS  = 28; // 4 semaines
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+
+function d(offset) {
+  const dt = new Date(START);
+  dt.setDate(dt.getDate() + offset);
+  return dt;
+}
+function dayIndex(date) {
+  return Math.round((date - START) / 86400000);
+}
+function pct(start, end) {
+  return {
+    left:  (start / DAYS * 100).toFixed(2) + '%',
+    width: ((end - start) / DAYS * 100).toFixed(2) + '%'
+  };
+}
+
+const DAYS_FR = ['Di','Lu','Ma','Me','Je','Ve','Sa'];
+const MONTHS_FR = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+
+// ── Header ─────────────────────────────────────────────────────────────────
+const head = document.getElementById('gantt-head');
+const tr1  = head.insertRow();
+const tr2  = head.insertRow();
+
+function th(text, cls='') {
+  const c = document.createElement('th');
+  c.innerHTML = text;
+  if (cls) c.className = cls;
+  return c;
+}
+
+tr1.appendChild(th('Tâche', 'label-col'));
+tr1.appendChild(th('Qui', 'who-col'));
+
+tr2.appendChild(th('', 'label-col'));
+tr2.appendChild(th('', 'who-col'));
+
+const weekStarts = [];
+for (let i = 0; i < DAYS; i++) {
+  const dt  = d(i);
+  const dow = dt.getDay(); // 0=Su
+  const isWeekend = (dow === 0 || dow === 6);
+
+  const c1 = th(`${dt.getDate()}`, 'day-header');
+  const c2 = th(DAYS_FR[dow], 'day-header');
+
+  if (dow === 1) { c1.classList.add('week-sep'); c2.classList.add('week-sep'); weekStarts.push(i); }
+  if (dt.toDateString() === TODAY.toDateString()) { c1.classList.add('today-col'); c2.classList.add('today-col'); }
+  if (isWeekend) { c1.style.color = '#ef4444'; c2.style.color = '#ef4444'; }
+
+  tr1.appendChild(c1);
+  tr2.appendChild(c2);
+}
+
+// ── Tasks ──────────────────────────────────────────────────────────────────
+// each task: { label, who:'p1'|'p2'|'all', start(offset), end(offset exclusive), color }
+// milestones: { label, who, day(offset), color:'milestone' }
+
+const TASKS = [
+  { section: '⚙️  Setup & Organisation' },
+  { label: 'Mise en place env. (VSCode, packages, Git)',  who:'all', start:0,  end:2,  color:'c-setup'  },
+  { label: 'Exploration du jeu de données IRVE.csv',      who:'all', start:1,  end:4,  color:'c-data'   },
+  { label: 'Préparation données communes (nettoyage)',    who:'all', start:3,  end:6,  color:'c-data'   },
+
+  { section: '🗺️  Besoin Client 1 – Visualisation carte (Personne 1)' },
+  { label: 'Sélection colonnes + encodage catégoriel',    who:'p1',  start:4,  end:7,  color:'c-bc1'    },
+  { label: 'Graphiques distribution (type, puissance)',   who:'p1',  start:6,  end:9,  color:'c-bc1'    },
+  { label: 'Carte interactive (Folium/Plotly) par type',  who:'p1',  start:8,  end:11, color:'c-bc1'    },
+  { label: 'Heatmap densité spatiale des bornes',         who:'p1',  start:10, end:13, color:'c-bc1'    },
+  { milestone: '✔ BC1 finalisé', who:'p1', day:13 },
+
+  { section: '🔵  Besoin Client 2 – Clustering (Personne 2)' },
+  { label: 'Choix algo clustering (KMeans/DBSCAN…)',      who:'p2',  start:4,  end:7,  color:'c-bc2'    },
+  { label: 'Recherche nb optimal de clusters (Elbow…)',   who:'p2',  start:6,  end:10, color:'c-bc2'    },
+  { label: 'Métriques (Silhouette, CH, Davies-Bouldin)',  who:'p2',  start:9,  end:12, color:'c-bc2'    },
+  { label: 'Carte clusters (couleurs par cluster)',        who:'p2',  start:11, end:14, color:'c-bc2'    },
+  { label: 'Script CLI predict_cluster.py + .pkl',        who:'p2',  start:13, end:16, color:'c-bc2'    },
+  { milestone: '✔ BC2 finalisé', who:'p2', day:16 },
+
+  { section: '🟢  Besoin Client 3 – Classification implantation (Personne 1)' },
+  { label: 'Prépa données (encodage, split train/test)',  who:'p1',  start:13, end:16, color:'c-bc3'    },
+  { label: 'Choix + entraînement algo classification',    who:'p1',  start:15, end:19, color:'c-bc3'    },
+  { label: 'GridSearchCV hyperparamètres',                who:'p1',  start:18, end:22, color:'c-bc3'    },
+  { label: 'Métriques classif (acc, F1, matrice conf.)',  who:'p1',  start:21, end:24, color:'c-bc3'    },
+  { label: 'Script CLI predict_implantation.py + .pkl',   who:'p1',  start:23, end:25, color:'c-bc3'    },
+  { milestone: '✔ BC3 finalisé', who:'p1', day:25 },
+
+  { section: '🔴  Besoin Client 4 – Régression puissance nominale (Personne 2)' },
+  { label: 'Prépa données (encodage, normalisation)',     who:'p2',  start:16, end:19, color:'c-bc4'    },
+  { label: 'Choix + entraînement algo régression',        who:'p2',  start:18, end:22, color:'c-bc4'    },
+  { label: 'GridSearchCV hyperparamètres',                who:'p2',  start:21, end:24, color:'c-bc4'    },
+  { label: 'Métriques régression (MAE, RMSE, R²)',        who:'p2',  start:23, end:25, color:'c-bc4'    },
+  { label: 'Script CLI predict_puissance.py + .pkl',      who:'p2',  start:24, end:26, color:'c-bc4'    },
+  { milestone: '✔ BC4 finalisé', who:'p2', day:26 },
+
+  { section: '📄  Rapport & Soutenance (Binôme)' },
+  { label: 'Rédaction rapport (sections BC1-BC4)',        who:'all', start:22, end:26, color:'c-rapport' },
+  { label: 'Diagramme de Gantt dans rapport (1 page)',    who:'all', start:25, end:26, color:'c-rapport' },
+  { label: 'Préparation slides soutenance',               who:'all', start:25, end:27, color:'c-sout'    },
+  { label: 'Répétition + démo 3 scripts',                 who:'all', start:26, end:28, color:'c-sout'    },
+  { milestone: '🎤 SOUTENANCE', who:'all', day:28 },
+];
+
+// ── Render body ────────────────────────────────────────────────────────────
+const tbody = document.getElementById('gantt-body');
+
+TASKS.forEach(task => {
+  const tr = tbody.insertRow();
+
+  if (task.section) {
+    tr.className = 'section-row';
+    const td = tr.insertCell();
+    td.colSpan = 2 + DAYS;
+    td.textContent = task.section;
+    return;
+  }
+
+  // Label
+  const tdLabel = tr.insertCell();
+  tdLabel.className = 'label';
+
+  // Who tag
+  const tdWho = tr.insertCell();
+  tdWho.className = 'who';
+
+  if (task.milestone) {
+    tdLabel.innerHTML = `<span style="color:#f59e0b;font-weight:700">${task.milestone}</span>`;
+    const tag = document.createElement('span');
+    tag.className = 'tag ' + task.who;
+    tag.textContent = task.who === 'all' ? 'Tous' : task.who === 'p1' ? 'P1' : 'P2';
+    tdWho.appendChild(tag);
+
+    for (let i = 0; i < DAYS; i++) {
+      const td = tr.insertCell();
+      td.className = 'day-cell';
+      if (i === task.day) {
+        const wrap = document.createElement('div');
+        wrap.className = 'bar-wrap';
+        wrap.style.position = 'relative';
+        const ms = document.createElement('div');
+        ms.className = 'milestone';
+        ms.style.left = '50%';
+        wrap.appendChild(ms);
+        td.appendChild(wrap);
+      }
+    }
+    return;
+  }
+
+  tdLabel.textContent = task.label;
+
+  const tag = document.createElement('span');
+  tag.className = 'tag ' + task.who;
+  tag.textContent = task.who === 'all' ? 'Tous' : task.who === 'p1' ? 'P1' : 'P2';
+  tdWho.appendChild(tag);
+
+  // One big cell spanning all day columns, with absolute bar
+  const tdBar = tr.insertCell();
+  tdBar.colSpan = DAYS;
+  tdBar.style.position = 'relative';
+  tdBar.style.padding = '4px 2px';
+
+  const wrap = document.createElement('div');
+  wrap.style.position = 'relative';
+  wrap.style.height = '22px';
+  wrap.style.width = '100%';
+
+  const bar = document.createElement('div');
+  bar.className = 'bar ' + task.color;
+  bar.style.left  = (task.start / DAYS * 100).toFixed(2) + '%';
+  bar.style.width = ((task.end - task.start) / DAYS * 100).toFixed(2) + '%';
+  bar.title = `${task.label} — J${task.start} à J${task.end}`;
+
+  wrap.appendChild(bar);
+  tdBar.appendChild(wrap);
+});
+</script>
+</body>
+</html>
